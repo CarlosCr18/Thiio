@@ -1,0 +1,61 @@
+# Dockerfile for PHP-FPM
+FROM php:8.2-fpm-alpine
+
+WORKDIR /var/www
+
+# Install Composer globally
+RUN echo "Install COMPOSER" \
+    && cd /tmp \
+    && curl -sS https://getcomposer.org/installer -o composer-setup.php \
+    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+    && rm composer-setup.php
+
+# Install required PHP extensions and important libraries
+RUN docker-php-ext-install pdo pdo_mysql \
+    && apk --no-cache add \
+        nano \
+        wget \
+        dialog \
+        vim \
+        mysql-client \
+        libpng-dev \
+        libjpeg-turbo-dev \
+        libwebp-dev \
+        freetype-dev \
+        libzip-dev \
+        zip \
+        unzip \
+        git \
+        curl \
+        libmcrypt-dev \
+        libxml2-dev
+
+# Create a non-root user to run Composer and Laravel Artisan commands
+RUN addgroup -S laravel && adduser -S laravel -G laravel
+
+# Copy existing application directory to the container
+COPY --chown=laravel:laravel . .
+
+# Copy entrypoint script and set permissions
+COPY laravel_entrypoint.sh /laravel_entrypoint.sh
+RUN chmod +x /laravel_entrypoint.sh
+
+# Switch back to the root user for further configuration
+USER root
+
+# Install Laravel dependencies
+RUN composer install --no-dev --optimize-autoloader
+
+# Ensure www-data user owns the Laravel application files
+RUN chown -R www-data:www-data /var/www \
+    && chown -R laravel:laravel /var/www
+
+# Set permissions for Laravel directories
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+# Expose port 9000 for PHP-FPM
+EXPOSE 9000
+EXPOSE 8000
+
+# Start PHP-FPM using the entrypoint script
+ENTRYPOINT [ "/laravel_entrypoint.sh" ]
