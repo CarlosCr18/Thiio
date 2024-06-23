@@ -1,0 +1,134 @@
+services:
+    app:
+        container_name: app
+        # restart: unless-stopped
+        tty: true
+        build:
+            context: .
+            dockerfile: Dockerfile.laravel
+        depends_on:
+            db:
+                condition: service_healthy
+        healthcheck:
+            test: ps aux | grep php-fpm # Example MySQL health check
+            interval: 10s
+            timeout: 30s
+            start_period: 10s
+            retries: 5
+        environment:
+            DB_CONNECTION: mysql
+            DB_HOST: db
+            DB_PORT: 3306
+            DB_DATABASE: "laravel"
+            DB_USERNAME: "root"
+            DB_PASSWORD: "laravelpass"
+        networks:
+            - dnet
+        volumes:
+            - ./laravel_entrypoint.sh:/var/www/laravel_entrypoint.sh
+            - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+            - ./:/var/www
+        expose:
+            - 9000
+            - 8000
+        ports:
+            - "9000:9000"
+            - "8000:8000"
+
+    nginx:
+        build:
+            context: .
+            dockerfile: Dockerfile.nginx
+        container_name: nginx
+        restart: unless-stopped
+        tty: true
+        depends_on:
+            app:
+                condition: service_healthy
+        profiles:
+            - ""
+        ports:
+            - "3000:3000"
+        volumes:
+            - ./:/var/www
+            - ./default.conf:/etc/nginx/default.conf
+            - ./nginxWithProfile.conf:/etc/nginx/nginxWithProfile.conf
+            - ./fastcgi_params:/etc/nginx/fastcgi_params
+        networks:
+            - dnet
+        environment:
+            - "NGINX_MODE_RANDOM=0" # Set NGINX_MODE to default
+
+    nginx-with-proxy:
+        build:
+            context: .
+            dockerfile: Dockerfile.nginx
+        container_name: nginx-with-proxy
+        # restart: unless-stopped
+        tty: true
+        depends_on:
+            random-http-service:
+                condition: service_started
+        ports:
+            - "3000:3000"
+        volumes:
+            - ./:/var/www
+            - ./default.conf:/etc/nginx/default.conf
+            - ./nginxWithProfile.conf:/etc/nginx/nginxWithProfile.conf
+            - ./fastcgi_params:/etc/nginx/fastcgi_params
+            - ./logs:/var/www/logs
+        networks:
+            - dnet
+        profiles:
+            - random
+        environment:
+            - "NGINX_MODE_RANDOM=1" # Set NGINX_MODE to random
+
+    db:
+        image: mysql:8.0 # Consider using mysql:latest for updates
+        restart: always
+        tty: true
+        container_name: db
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"] # Example MySQL health check
+            interval: 10s
+            retries: 5
+        ports:
+            - "3306:3306"
+        networks:
+            - dnet
+        environment:
+            MYSQL_ROOT_PASSWORD: "laravelpass" # Set your desired root password here
+            DB_DATABASE: "laravel"
+            DB_USERNAME: "user"
+            DB_PASSWORD: "password"
+        # volumes:
+        #   - mysql_data:/var/lib/mysql
+        # - ./mysql/my.cnf:/etc/mysql/my.cnf
+
+    random-http-service:
+        image: hashicorp/http-echo:latest
+        container_name: random-http-service
+        command: ["-text=Hello, this is the random HTTP service!"]
+        depends_on:
+            app:
+                condition: service_healthy
+        profiles:
+            - random
+        networks:
+            - dnet
+        environment:
+            - "MESSAGE=hello world"
+            - "PORT=5678"
+        expose:
+            - "5678"
+        ports:
+            - "5678:5678"
+
+volumes:
+    mysql_data:
+        # driver: local
+
+networks:
+    dnet:
+        driver: bridge
