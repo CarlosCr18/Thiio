@@ -31,3 +31,5 @@ it should look like this (lets assume your nginx container ip is 179.29.0.5)
 
 Open your browser and navigate to devops.test:3000 to show the welcome page where you will see the current users in the database
 navigate to sub.devops.test:3000 to be redirected to the main page.
+
+if you started the container with the random profile navigate to the url devops.test:3000/thiio where you will find the text "Hello, this is the random HTTP service!"
