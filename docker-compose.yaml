@@ -16,12 +16,12 @@ services:
             start_period: 10s
             retries: 5
         environment:
-            DB_CONNECTION: mysql
+            DB_CONNECTION: ${DB_CONNECTION}
             DB_HOST: db
             DB_PORT: 3306
-            DB_DATABASE: "laravel"
-            DB_USERNAME: "root"
-            DB_PASSWORD: "laravelpass"
+            DB_DATABASE: ${DB_DATABASE}
+            DB_USERNAME: ${DB_USERNAME}
+            DB_PASSWORD: ${DB_PASSWORD}
         networks:
             - dnet
         volumes:
@@ -98,10 +98,10 @@ services:
         networks:
             - dnet
         environment:
-            MYSQL_ROOT_PASSWORD: "laravelpass" # Set your desired root password here
-            DB_DATABASE: "laravel"
-            DB_USERNAME: "user"
-            DB_PASSWORD: "password"
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD} # Set your desired root password here
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            MYSQL_USER: ${MYSQL_USER}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
         # volumes:
         #   - mysql_data:/var/lib/mysql
         # - ./mysql/my.cnf:/etc/mysql/my.cnf

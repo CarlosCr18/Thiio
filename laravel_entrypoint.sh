@@ -9,6 +9,7 @@ echo "LARAVEL ENTRYPONT EXECUTING"
     # sleep 15
 # done
 # # Run any Laravel commands if necessary
+php artisan key:generate
 php artisan migrate --force
 php artisan db:seed --force
 php artisan config:cache
